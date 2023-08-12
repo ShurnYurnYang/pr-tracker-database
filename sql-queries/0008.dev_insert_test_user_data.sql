@@ -1,0 +1,1 @@
+INSERT INTO users (username, password_hash, discord_id_hash) VALUES ('SYY', 'abc', '123');

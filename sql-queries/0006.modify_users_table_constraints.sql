@@ -1,0 +1,4 @@
+ALTER TABLE users
+ALTER COLUMN username DROP NOT NULL,
+ALTER COLUMN password_hash DROP NOT NULL,
+ALTER COLUMN discord_id_hash DROP NOT NULL;

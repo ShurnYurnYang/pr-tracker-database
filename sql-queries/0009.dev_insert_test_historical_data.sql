@@ -1,0 +1,1 @@
+INSERT INTO historical (user_id, record_date, pr) VALUES (1, '2023-08-11', ROW('Sean', 135.0, 175.0, 225.0));
