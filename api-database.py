@@ -45,12 +45,12 @@ app = Flask(__name__)
 @app.route('/insert_user', methods=['POST'])
 def insert_new_user():
     data = request.get_json()
-    query = "INSERT INTO users (discord_id_hash) VALUES (%s);"
+    query = "INSERT INTO users (username, discord_id_hash) VALUES (%s, %s);"
 
     if data:
         ##hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         hashed_discord_id = bcrypt.hashpw(data['discord_id'].encode('utf-8'), bcrypt.gensalt())
-        param = (hashed_discord_id)
+        param = (data['username'], hashed_discord_id)
 
         try:
             query_execute(query, param)
