@@ -1,4 +1,6 @@
 import psycopg2
+import bcrypt
+
 from flask import Flask, request, jsonify
 from datetime import datetime
 
@@ -27,6 +29,9 @@ def query_execute(query, param = None):
 
     return result
 
+def bcrypt_check(reference_hashed, test_raw):
+    return bcrypt.checkpw(test_raw.encode('utf-8'), reference_hashed)
+
 app = Flask(__name__)
 
 ## API FUNCTIONS:
@@ -34,27 +39,27 @@ app = Flask(__name__)
 ## 2. Enter new PR -> enters new pr data into 'historical' table -> generate appropriate graphs using mathplotlib
 ## 3. Get user info -> gets user information -> gets hashed password and discord-id
 ## 4. Get latest PR entry -> gets latest PR entry for specific user -> includes graphs
+## Keep these API functions simple for now, add additional features when web-app development starts
 
-## 1. get user info
-@app.route('/get_user', methods=['GET'])
-def get_user():
-    username = request.args.get('user_id')
+## 1. enter new user
+@app.route('/insert_user', methods=['POST'])
+def insert_new_user():
+    data = request.get_json()
+    query = "INSERT INTO users (discord_id_hash) VALUES (%s);"
 
-    if username:
-        query = "SELECT * FROM users WHERE username = (%s);"
-        param = (username)
-        
+    if data:
+        ##hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        hashed_discord_id = bcrypt.hashpw(data['discord_id'].encode('utf-8'), bcrypt.gensalt())
+        param = (hashed_discord_id)
+
         try:
-            user_data = query_execute(query, param)
+            query_execute(query, param)
         except Exception as error:
             return jsonify({"message": f"Server error, please try again later. Error code: {error}"}), 500
-        
-        if user_data:
-            return jsonify(user_data), 200
-        else:
-            return jsonify({"message": "User not found"}), 404
+
+        return jsonify({"message": "User registered successfully"}), 201
     else:
-        return jsonify({"message': 'Missing username parameter"}), 400
+        return jsonify({"message": "Data not found"}), 404
     
 ## 2. enter new PR info
 @app.route('/insert_pr', methods=['POST'])
@@ -67,9 +72,58 @@ def insert_new_pr():
         
         try:
             query_execute(query, param)
+            query_execute("SELECT * FROM historical ORDER BY record_date")
         except Exception as error:
             return jsonify({"message": f"Server error, please try again later. Error code: {error}"}), 500
         
         return jsonify({"message": "Data insertion success"}), 201
     else:
         return jsonify({"message": "Data not found"}), 404
+    
+## 3. Check discord_id endpoint
+@app.route('/check_discord_id', methods=['POST'])
+def verify_discord_id():
+    data = request.get_json()
+
+    if data:
+        query = "SELECT discord_id_hash FROM users WHERE username = (%s);"
+        param = (data['username'])
+        
+        try:
+            discord_id_hash = query_execute(query, param)
+        except Exception as error:
+            return jsonify({"message": f"Server error, please try again later. Error code: {error}"}), 500
+        
+        if discord_id_hash:
+            if bcrypt_check(discord_id_hash, data['discord_id']):
+                return jsonify({"message": "User verified", "verified": True}), 200
+            else:
+                return jsonify({"message": "Incorrect user", "verified": False}), 401
+        else:
+            return jsonify({"message": "User not found"}), 404
+    else:
+        return jsonify({"message': 'Missing username parameter"}), 400
+    
+## 4. Get latest entry given username
+@app.route('/get_latest_pr_entry_username', methods=['GET'])
+def get_latest_entry_discord_id():
+    username = request.args.get('username')
+
+    if username:
+        try:
+            query = "SELECT user_id FROM users WHERE username = (%s)"
+            param = (username)
+            user_id = query_execute(query, param)
+
+            query = "SELECT LAST * FROM historical WHERE user_id = (%s)" 
+            param = (user_id)
+            pr_data = query_execute(query, param)
+        except Exception as error:
+            return jsonify({"message": f"Server error, please try again later. Error code: {error}"}), 500
+        
+        if pr_data:
+            return jsonify({"message": "Data recieved", **pr_data}), 200
+        else:
+            return jsonify({"message": "Data not found"}), 404
+    else:
+        return jsonify({"message': 'Missing username parameter"}), 400

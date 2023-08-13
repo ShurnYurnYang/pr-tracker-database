@@ -1,0 +1,3 @@
+DELETE FROM historical;
+DELETE FROM users;
+ALTER SEQUENCE id RESTART;
