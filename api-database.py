@@ -42,7 +42,7 @@ app = Flask(__name__)
 # Keep these API functions simple for now, add additional features when web-app development starts
 
 # 1. enter new user
-@app.route('/insert_user', methods=['POST'])
+@app.route('/user', methods=['POST'])
 def insert_new_user():
     data = request.get_json()
     query = "INSERT INTO users (username, discord_id_hash) VALUES (%s, %s);"
@@ -62,7 +62,7 @@ def insert_new_user():
         return jsonify({"message": "Data not found"}), 404
     
 # 2. enter new PR info
-@app.route('/insert_pr', methods=['POST'])
+@app.route('/pr', methods=['POST'])
 def insert_new_pr():
     data = request.get_json()
 
@@ -105,7 +105,7 @@ def verify_discord_id():
         return jsonify({"message': 'Missing username parameter"}), 400
     
 # 4. Get latest entry given username
-@app.route('/get_latest_pr_entry_username', methods=['GET'])
+@app.route('/latest_pr_username', methods=['GET'])
 def get_latest_entry_discord_id():
     username = request.args.get('username')
 
